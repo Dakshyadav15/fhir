@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYUSH Lookup - Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981',
+                        secondary: '#1e40af'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50">
+    <!-- Navigation Bar -->
+    <nav class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🌿</span>
+                <h1 class="text-xl font-bold text-gray-800">AYUSH Search</h1>
+            </div>
+            <div class="flex items-center space-x-4 text-sm">
+                <span id="patientInfo" class="text-gray-600"></span>
+
+                <!-- Clinic login in nav (opens new tab) -->
+                <a href="/clinic-login"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-secondary hover:text-blue-900 font-medium">
+                   🏥 Clinic login
+                </a>
+
+                <button onclick="logout()" class="text-red-600 hover:text-red-800 font-medium">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Traditional Medicine Search</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Search our comprehensive database of Siddha and Unani medicine mappings
+            </p>
+        </div>
+
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/50">
+            <div class="space-y-6">
+                <div>
+                    <label for="searchTerm" class="block text-lg font-semibold text-gray-700 mb-3">
+                        🔍 Enter Disease, Condition, or Symptoms
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="searchTerm"
+                            class="w-full px-6 py-4 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all duration-300 bg-white/70 backdrop-blur-sm pr-16"
+                            placeholder="e.g., fever, headache, diabetes, arthritis" maxlength="100">
+                        <button onclick="performSearch()"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary hover:bg-emerald-600 text-white p-2 rounded-lg transition-all duration-300 hover:scale-105"
+                            id="searchButton">
+                            🔍
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Press Enter to search or click the search button</p>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="performSearch()"
+                        class="bg-gradient-to-r from-primary to-emerald-600 hover:from-emerald-600 hover:to-primary text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg text-lg"
+                        id="mainSearchButton">
+                        🚀 Search Traditional Medicine Database
+                    </button>
+                </div>
+
+                <!-- Prominent Clinic login CTA under main action (opens new tab) -->
+                <div class="text-center">
+                    <a href="/clinic-login"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-flex items-center justify-center mt-2 text-sm text-secondary hover:text-blue-900 underline">
+                       🏥 Clinic login
+                    </a>
+                </div>
+
+                <div id="loadingState" class="hidden text-center py-8">
+                    <div class="inline-flex items-center space-x-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span class="text-lg text-gray-600">Searching database...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkAuth() {
+            const isLoggedIn = localStorage.getItem('ayush_logged_in');
+            if (isLoggedIn !== 'true') window.location.href = 'login.html';
+            const patientId = localStorage.getItem('ayush_patient_id');
+            document.getElementById('patientInfo').textContent = patientId ? `Patient ID: ${patientId}` : 'Anonymous User';
+        }
+
+        function logout() {
+            localStorage.removeItem('ayush_logged_in');
+            sessionStorage.removeItem('ayush_search_result');
+            window.location.href = 'login.html';
+        }
+
+        async function performSearch() {
+            const searchTerm = document.getElementById('searchTerm').value.trim();
+            if (!searchTerm) { alert('Enter a search term'); return; }
+
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('searchButton').disabled = true;
+            document.getElementById('mainSearchButton').disabled = true;
+
+            try {
+                const patientId = localStorage.getItem('ayush_patient_id') || null;
+                const response = await fetch('/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ disease_text: searchTerm, patient_id: patientId })
+                });
+                const json = await response.json();
+
+                if (!response.ok) {
+                    alert(json.detail || 'Lookup failed');
+                    return;
+                }
+
+                sessionStorage.setItem('ayush_search_result', JSON.stringify({
+                    searchTerm: searchTerm,
+                    timestamp: new Date().toISOString(),
+                    patientId: patientId,
+                    result: json.result
+                }));
+
+                window.location.href = 'result.html';
+
+            } catch (err) {
+                console.error(err);
+                alert('Lookup failed. See console.');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('searchButton').disabled = false;
+                document.getElementById('mainSearchButton').disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            document.getElementById('searchTerm').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
+        });
+    </script>
+</body>
+</html>

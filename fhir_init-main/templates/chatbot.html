@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYUSH AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50">
+    <nav class="bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">🤖</span>
+                    <h1 class="text-xl font-bold text-gray-800">Dr. AYUSH AI Assistant</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="text-primary hover:text-emerald-600 font-medium">🔍 Search</a>
+                    <a href="/shop" class="text-emerald-600 hover:text-emerald-800 font-medium">🛒 Store</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg">
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="h-96 overflow-y-auto p-6 space-y-4">
+                <div class="flex items-start space-x-3">
+                    <div class="text-2xl">🤖</div>
+                    <div class="bg-emerald-100 rounded-lg p-3 max-w-xs">
+                        <p class="text-gray-800">Hello! I'm Dr. AYUSH. Describe your symptoms and I'll help with traditional remedies.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-gray-200 p-4">
+                <div class="flex space-x-4">
+                    <input 
+                        id="messageInput"
+                        type="text" 
+                        placeholder="Describe your symptoms naturally..."
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
+                        onkeydown="handleKeyPress(event)"
+                    />
+                    <button 
+                        onclick="sendMessage()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold"
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            input.value = '';
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                removeTypingIndicator();
+                addMessage(data.response, 'bot');
+                
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+            }
+        }
+
+        function addMessage(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex items-start space-x-3 justify-end">
+                        <div class="bg-blue-500 text-white rounded-lg p-3 max-w-xs">
+                            <p>${message}</p>
+                        </div>
+                        <div class="text-2xl">👤</div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="text-2xl">🤖</div>
+                        <div class="bg-emerald-100 rounded-lg p-3 max-w-xs">
+                            <p class="text-gray-800">${message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function showTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="text-2xl">🤖</div>
+                    <div class="bg-gray-200 rounded-lg p-3">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                            <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+    </script>
+</body>
+</html>

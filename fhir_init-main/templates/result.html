@@ -1,0 +1,743 @@
+<!-- templates/result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AYUSH Lookup - Results</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#10b981', secondary: '#1e40af' }
+        }
+      }
+    }
+  </script>
+  <style>
+    .codes-section { background: linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(240, 253, 244, 0.3)); border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(226, 232, 240, 0.5); }
+    .code-card { background: white; border-radius: 0.75rem; padding: 1rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 1px solid rgba(226, 232, 240, 0.5); transition: all 0.3s ease; }
+    .code-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
+    .icd-card { border-left: 4px solid #3b82f6; }
+    .siddha-card { border-left: 4px solid #10b981; }
+    .unani-card { border-left: 4px solid #8b5cf6; }
+    .code-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .code-type { font-size: 0.875rem; font-weight: 600; color: #4b5563; }
+    .code-value { font-size: 1.25rem; font-weight: 700; color: #1f2937; font-family: 'Courier New', monospace; }
+    .treatment-section { background: linear-gradient(135deg, rgba(220, 252, 231, 0.5), rgba(254, 249, 195, 0.3)); border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .treatment-card { background: white; border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+    .badge-modern { padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; color: white; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+    .badge-siddha { background: linear-gradient(135deg, #22c55e, #16a34a); }
+    .badge-unani { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .badge-code { background: linear-gradient(135deg, #1e90ff, #0f76d7); }
+    .btn-modern { padding: 0.75rem 1.5rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3); }
+    .btn-secondary { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; border: 1px solid #cbd5e1; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+    .btn-modern:hover { transform: translateY(-2px); }
+    .mapping-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.6); border-radius: 0.5rem; border: 1px solid rgba(226, 232, 240, 0.5); }
+    .mapping-key { font-size: 0.875rem; font-weight: 600; color: #374151; }
+    .mapping-value { font-size: 0.875rem; color: #4b5563; font-family: 'Courier New', monospace; }
+    .floating-chatbot-btn { position: fixed; bottom: 20px; right: 20px; background-color: #10b981; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); cursor: pointer; transition: all 0.3s ease; z-index: 1000; }
+    .floating-chatbot-btn:hover { transform: scale(1.1); }
+    .chatbot-container { display: none; position: fixed; bottom: 100px; right: 20px; width: 350px; height: 500px; background-color: white; border-radius: 15px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); z-index: 1000; flex-direction: column; }
+
+    /* Feedback UI additions */
+    .remedy-card{ border:1px solid #eee; padding:12px; border-radius:10px; margin:10px 0; position:relative; cursor:pointer; }
+    .remedy-card.selected{ outline:2px solid #0d6efd; }
+    .badges{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .chip{ background:#eef; color:#113; padding:3px 10px; border-radius:999px; font-size:12px; }
+    .countdown-chip{ background:#fff3cd; color:#664d03; }
+    details.feedback-details{ margin-top:8px; }
+    .feedback-list{ margin:6px 0 0 18px; }
+    #fbModal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999; }
+    #fbModal .box{ max-width:380px; margin:10% auto; background:#fff; padding:16px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+    #fbModal .row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .floating-remind-btn { position: fixed; bottom: 95px; left: 20px; background: #f59e0b; color: #fff; border: none; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.15); z-index: 1000; cursor:pointer; }
+    .floating-remind-btn:hover { filter: brightness(0.95); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50">
+  <nav class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">🌿</span>
+          <h1 class="text-xl font-bold text-gray-800">AYUSH Results</h1>
+        </div>
+        <div class="flex items-center space-x-4 text-sm">
+          <span id="patientInfo" class="text-gray-600"></span>
+          <a href="/" class="text-primary hover:text-emerald-600 font-medium">New Search</a>
+          <a href="/shop" class="text-emerald-600 hover:text-emerald-800 font-medium">🛒 Medicine Store</a>
+          <button onclick="logout()" class="text-red-600 hover:text-red-800 font-medium">Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <div id="noResults" class="hidden text-center py-16">
+      <div class="text-6xl mb-4">🔍</div>
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">No Search Results Found</h2>
+      <p class="text-gray-600 mb-8">It looks like you haven't performed a search yet.</p>
+      <a href="/" class="bg-primary hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+        Start New Search
+      </a>
+    </div>
+
+    <div id="resultsContainer" class="hidden">
+      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-8 border border-white/50">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Search Results</h1>
+            <p class="text-gray-600">Search for: <span id="searchTermDisplay" class="font-semibold text-primary"></span></p>
+            <p class="text-sm text-gray-500">Searched at: <span id="searchTimestamp"></span></p>
+          </div>
+          <div class="mt-4 md:mt-0 flex space-x-3">
+            <button onclick="copyResultJSON()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">📋 Copy JSON</button>
+            <a href="/shop" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">🛒 Buy Medicine</a>
+            <a href="/" class="bg-primary hover:bg-emerald-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-105">🔍 New Search</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultDisplay"></div>
+
+      <div class="bg-gray-50/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 mt-8">
+        <button onclick="toggleJSON()" class="w-full p-6 text-left hover:bg-gray-100/50 transition-colors duration-300 rounded-t-2xl">
+          <h3 class="text-lg font-bold text-gray-800 flex items-center justify-between">
+            <span class="flex items-center"><span class="text-2xl mr-3">🔧</span>Raw JSON Data</span>
+            <span id="jsonToggleIcon" class="text-gray-500">▼</span>
+          </h3>
+        </button>
+        <div id="jsonContent" class="hidden px-6 pb-6">
+          <pre id="rawJSON" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap"></pre>
+          <div class="mt-4 text-center">
+            <button onclick="copyResultJSON()" class="bg-gray-700 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300">📋 Copy to Clipboard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="remindBtn" class="floating-remind-btn">⏰ Remind in 2 days</button>
+
+  <div class="floating-chatbot-btn" onclick="toggleChatbot()">🤖</div>
+
+  <div id="chatbotContainer" class="chatbot-container">
+    <div class="bg-primary text-white p-3 rounded-t-lg flex justify-between items-center">
+      <h3 class="font-bold">Dr. AYUSH AI Assistant</h3>
+      <button onclick="toggleChatbot()" class="text-xl">×</button>
+    </div>
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="flex items-start space-x-2">
+        <div class="text-xl">🤖</div>
+        <div class="bg-emerald-100 rounded-lg p-2 max-w-xs text-sm">
+          <p>Hello! Ask me anything about your results or other symptoms.</p>
+        </div>
+      </div>
+    </div>
+    <div class="border-t p-3">
+      <div class="flex space-x-2">
+        <input id="messageInput" type="text" placeholder="Ask a question..." class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:border-primary">
+        <button onclick="sendMessage()" class="bg-primary text-white px-4 py-2 rounded-lg font-semibold">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback modal -->
+  <div id="fbModal">
+    <div class="box">
+      <p id="fbQuestion" style="font-weight:600;margin:0 0 8px 0;"></p>
+      <div class="row" style="margin:8px 0;">
+        <button class="choice" data-choice="worked">Worked</button>
+        <button class="choice" data-choice="noeffect">No effect</button>
+        <button class="choice" data-choice="sidefx">Side effects</button>
+      </div>
+      <textarea id="fbNote" placeholder="Add a note (optional)" style="width:100%;height:72px;"></textarea>
+      <div class="row" style="margin-top:10px; justify-content:flex-end;">
+        <button id="fbSkip">Skip</button>
+        <button id="fbSend" style="background:#0d6efd;color:#fff;border:none;border-radius:6px;padding:6px 10px;">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let searchResult = null;
+
+    function checkAuth() {
+      const isLoggedIn = localStorage.getItem('ayush_logged_in');
+      if (isLoggedIn !== 'true') {
+        window.location.href = '/login';
+        return;
+      }
+      const patientId = localStorage.getItem('ayush_patient_id');
+      const patientInfo = document.getElementById('patientInfo');
+      if (patientId) {
+        patientInfo.textContent = `Patient ID: ${patientId}`;
+      } else {
+        patientInfo.textContent = 'Anonymous User';
+      }
+    }
+
+    function loadResults() {
+      const storedResult = sessionStorage.getItem('ayush_search_result');
+      if (!storedResult) {
+        document.getElementById('noResults').classList.remove('hidden');
+        return;
+      }
+      try {
+        searchResult = JSON.parse(storedResult);
+        displayResults(searchResult);
+        document.getElementById('resultsContainer').classList.remove('hidden');
+      } catch (error) {
+        console.error('Error parsing search result:', error);
+        document.getElementById('noResults').classList.remove('hidden');
+      }
+    }
+
+    function displayResults(data) {
+      const result = data.result || data;
+      document.getElementById('searchTermDisplay').textContent = data.searchTerm || 'Unknown';
+      document.getElementById('searchTimestamp').textContent = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'Unknown';
+
+      const merged = result.merged || {};
+      const codeCards = [];
+
+      const icdCode = merged["uni_icd-11"] || merged["UniICD-11"] || merged.uni_icd11 || merged.icd_code;
+      if (icdCode && icdCode !== 'Nan') {
+        codeCards.push(`
+          <div class="code-card icd-card">
+            <div class="code-header">
+              <span class="code-icon">🏥</span>
+              <span class="code-type">ICD-11 Code</span>
+            </div>
+            <div class="code-value">${icdCode}</div>
+          </div>
+        `);
+      }
+
+      const siddhaCode = merged.siddha_code || merged.Sidhacode || merged.siddha;
+      if (siddhaCode && siddhaCode !== 'Nan') {
+        codeCards.push(`
+          <div class="code-card siddha-card">
+            <div class="code-header">
+              <span class="code-icon">🌿</span>
+              <span class="code-type">Siddha Code</span>
+            </div>
+            <div class="code-value">${siddhaCode}</div>
+          </div>
+        `);
+      }
+
+      const unaniCode = merged.unani_code || merged.Unanicode || merged.unani || result.code;
+      if (unaniCode && unaniCode !== 'Nan') {
+        codeCards.push(`
+          <div class="code-card unani-card">
+            <div class="code-header">
+              <span class="code-icon">🕌</span>
+              <span class="code-type">Unani Code</span>
+            </div>
+            <div class="code-value">${unaniCode}</div>
+          </div>
+        `);
+      }
+
+      const resultLabel = result.label || merged.name_icd || merged.Nameicd || data.searchTerm || 'Unknown Condition';
+      const resultDiscipline = result.discipline || 'Unknown';
+      const primaryCode = result.code || 'Unknown';
+
+      document.getElementById('resultDisplay').innerHTML = `
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/50">
+          <div class="flex items-start gap-6">
+            <div class="flex-shrink-0 text-5xl">✅</div>
+            <div class="flex-1">
+              <h3 class="text-3xl font-bold text-gray-800 mb-4">${resultLabel}</h3>
+              <div class="flex flex-wrap gap-3 mb-6">
+                <span class="badge-modern ${resultDiscipline === 'Siddha' ? 'badge-siddha' : 'badge-unani'}">${resultDiscipline} Medicine</span>
+                <span class="badge-modern badge-code">Primary Code: ${primaryCode}</span>
+              </div>
+              ${codeCards.length > 0 ? `
+              <div class="codes-section mb-8">
+                <h4 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">🏥 Medical Classification Codes</h4>
+                <div class="grid gap-4 md:grid-cols-3">${codeCards.join('')}</div>
+              </div>` : `
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
+                <p class="text-yellow-800">⚠️ Additional classification codes not available for this condition.</p>
+              </div>`}
+              ${merged.remedies && merged.remedies !== 'Nan' ? `
+              <div class="treatment-section mb-8">
+                <h4 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">💊 Traditional Treatment</h4>
+                <div class="treatment-card"><p class="text-gray-700 leading-relaxed">${merged.remedies}</p></div>
+              </div>` : ''}
+              ${Object.keys(merged).length > 0 ? `
+              <div class="bg-gradient-to-r from-slate-50 to-emerald-50/30 rounded-2xl p-6 mb-8 border border-slate-200/50">
+                <h4 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">📋 Complete Mapping Details</h4>
+                <div class="grid gap-3 md:grid-cols-2">
+                  ${Object.entries(merged).map(([key, value]) => {
+                    if (value && value !== 'Nan' && value !== '') {
+                      return `
+                        <div class="mapping-item">
+                          <span class="mapping-key">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                          <span class="mapping-value">${value}</span>
+                        </div>
+                      `;
+                    }
+                    return '';
+                  }).filter(Boolean).join('')}
+                </div>
+              </div>` : ''}
+              <div class="flex flex-wrap gap-4">
+                <button class="btn-modern" onclick="copyAllCodes()">📋 Copy All Codes</button>
+                <a href="/shop" class="btn-modern">🛒 Buy Related Medicine</a>
+                <button class="btn-modern btn-secondary" onclick="shareResult('${resultLabel}', '${primaryCode}')">🔗 Share Result</button>
+                <a href="/" class="btn-modern btn-secondary">🔍 New Search</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Append Suggested Remedies (feedback UI) without altering the original template above
+      const remediesText = (merged.remedies && merged.remedies !== 'Nan') ? String(merged.remedies) : '';
+      let remedyItems = [];
+      if (remediesText) {
+        remedyItems = remediesText
+          .split(/[\n;•]|(?:,\s(?=[A-Z]))/g)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          .slice(0, 8);
+      }
+      if (remedyItems.length) {
+        const container = document.querySelector('#resultDisplay .flex-1');
+        if (container) {
+          const remediesHTML = `
+            <div class="mb-8">
+              <h4 class="text-xl font-bold text-gray-700 mb-3 flex items-center gap-2">🧾 Suggested Remedies</h4>
+              <div id="remediesGrid" class="grid gap-3 md:grid-cols-2">
+                ${remedyItems.map(item => {
+                  const safe = item.replace(/"/g,'&quot;').replace(/</g,'&lt;');
+                  const key = `${resultDiscipline}|${primaryCode}|${safe}`;
+                  return `
+                    <div class="remedy-card" data-remedy-key="${key}">
+                      <h4 class="font-semibold text-gray-800">${safe}</h4>
+                      <div class="badges">
+                        <span class="chip countdown-chip"></span>
+                        <span class="chip worked-badge"></span>
+                        <span class="chip noeffect-badge"></span>
+                        <span class="chip sidefx-badge"></span>
+                      </div>
+                      <details class="feedback-details">
+                        <summary>See feedback</summary>
+                        <ul class="feedback-list"></ul>
+                      </details>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Tip: Click a card to select it for reminders.</p>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', remediesHTML);
+        }
+      }
+
+      // After render: wire selection and feedback UI
+      initFeedbackUI();
+      document.getElementById('rawJSON').textContent = JSON.stringify(data, null, 2);
+    }
+
+    function copyAllCodes() {
+      if (!searchResult) { showMessage('No result data to copy', 'error'); return; }
+      const result = searchResult.result || searchResult;
+      const merged = result.merged || {};
+      let codeText = `Medical Codes for: ${result.label || searchResult.searchTerm}\n\n`;
+      codeText += `Primary ${result.discipline || 'Unknown'} Code: ${result.code || 'Unknown'}\n`;
+      if (merged["uni_icd-11"] || merged["UniICD-11"]) codeText += `ICD-11 Code: ${merged["uni_icd-11"] || merged["UniICD-11"]}\n`;
+      if (merged.siddha_code && merged.siddha_code !== 'Nan') codeText += `Siddha Code: ${merged.siddha_code}\n`;
+      if (merged.unani_code && merged.unani_code !== 'Nan') codeText += `Unani Code: ${merged.unani_code}\n`;
+      if (merged.remedies && merged.remedies !== 'Nan') codeText += `\nTreatment: ${merged.remedies}\n`;
+      navigator.clipboard.writeText(codeText).then(() => showMessage('All medical codes copied to clipboard!', 'success'));
+    }
+
+    function toggleJSON() {
+      const content = document.getElementById('jsonContent');
+      const icon = document.getElementById('jsonToggleIcon');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.textContent = '▲';
+      } else {
+        content.classList.add('hidden');
+        icon.textContent = '▼';
+      }
+    }
+
+    function copyResultJSON() {
+      if (!searchResult) { showMessage('No result data to copy', 'error'); return; }
+      const jsonString = JSON.stringify(searchResult, null, 2);
+      navigator.clipboard.writeText(jsonString)
+        .then(() => showMessage('Result JSON copied to clipboard!', 'success'))
+        .catch(() => showMessage('Result JSON copied to clipboard!', 'success'));
+    }
+
+    function shareResult(label, code) {
+      const url = `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(label)}`;
+      const shareText = `${label} (Code: ${code}) - Traditional Medicine Lookup: ${url}`;
+      navigator.clipboard.writeText(shareText).then(() => {
+        showMessage(`Share link for "${label}" copied to clipboard!`, 'success');
+      });
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to logout? This will clear all search results.')) {
+        localStorage.removeItem('ayush_logged_in');
+        sessionStorage.removeItem('ayush_search_result');
+        window.location.href = '/login';
+      }
+    }
+
+    function showMessage(message, type) {
+      const existingMessage = document.getElementById('tempMessage');
+      if (existingMessage) existingMessage.remove();
+      const colors = {
+        success: 'bg-green-100 border-green-300 text-green-700',
+        info: 'bg-blue-100 border-blue-300 text-blue-700',
+        error: 'bg-red-100 border-red-300 text-red-700'
+      };
+      const messageDiv = document.createElement('div');
+      messageDiv.id = 'tempMessage';
+      messageDiv.className = `fixed top-20 right-4 p-4 border rounded-lg shadow-lg z-50 ${colors[type]} transform translate-x-full transition-transform duration-300`;
+      messageDiv.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <span>${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-70">✕</button>
+        </div>
+      `;
+      document.body.appendChild(messageDiv);
+      setTimeout(() => { messageDiv.classList.remove('translate-x-full'); }, 100);
+      setTimeout(() => {
+        if (messageDiv.parentElement) {
+          messageDiv.classList.add('translate-x-full');
+          setTimeout(() => messageDiv.remove(), 300);
+        }
+      }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      loadResults();
+      document.getElementById('messageInput').addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') sendMessage();
+      });
+      // Feedback demo notifications (optional)
+      demoNotify();
+    });
+
+    function toggleChatbot() {
+      const chatbotContainer = document.getElementById('chatbotContainer');
+      chatbotContainer.style.display = chatbotContainer.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // --- STREAMING CHAT: consume SSE with ReadableStream ---
+    function createOrGetBotBubble() {
+      const chatMessages = document.getElementById('chatMessages');
+      let bubble = document.getElementById('bot-stream-bubble');
+      if (!bubble) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex items-start space-x-2';
+        wrapper.innerHTML = `
+          <div class="text-xl">🤖</div>
+          <div id="bot-stream-bubble" class="bg-emerald-100 rounded-lg p-2 max-w-xs text-sm"><p></p></div>
+        `;
+        chatMessages.appendChild(wrapper);
+        bubble = document.getElementById('bot-stream-bubble');
+      }
+      return bubble.querySelector('p');
+    }
+
+    function addMessage(message, sender) {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      if (sender === 'user') {
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-2 justify-end">
+            <div class="bg-blue-500 text-white rounded-lg p-2 max-w-xs text-sm">
+              <p>${message}</p>
+            </div>
+            <div class="text-xl">👤</div>
+          </div>
+        `;
+      } else {
+        messageDiv.innerHTML = `
+          <div class="flex items-start space-x-2">
+            <div class="text-xl">🤖</div>
+            <div class="bg-emerald-100 rounded-lg p-2 max-w-xs text-sm">
+              <p>${message}</p>
+            </div>
+          </div>
+        `;
+      }
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const chatMessages = document.getElementById('chatMessages');
+      const typingDiv = document.createElement('div');
+      typingDiv.id = 'typing-indicator';
+      typingDiv.innerHTML = `
+        <div class="flex items-start space-x-2">
+          <div class="text-xl">🤖</div>
+          <div class="bg-gray-200 rounded-lg p-2">
+            <div class="flex space-x-1">
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      chatMessages.appendChild(typingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      if (typingIndicator) typingIndicator.remove();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage(message, 'user');
+      input.value = '';
+      showTypingIndicator();
+
+      try {
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+          body: JSON.stringify({ message })
+        });
+
+        if (!response.ok || !response.body) {
+          removeTypingIndicator();
+          addMessage('Sorry, streaming failed to start.', 'bot');
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        // Prepare a single bot bubble for streaming text
+        const botP = createOrGetBotBubble();
+        botP.textContent = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE events are separated by a blank line
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+
+          for (const evt of events) {
+            const lines = evt.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data:')) {
+                const payload = line.slice(5).trim();
+                try {
+                  const obj = JSON.parse(payload);
+                  if (obj.delta) {
+                    botP.textContent += obj.delta;
+                  }
+                } catch {
+                  botP.textContent += payload;
+                }
+              }
+              // Optional: handle "event: error"
+            }
+          }
+
+          // keep scroll pinned to bottom
+          const chatMessages = document.getElementById('chatMessages');
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        removeTypingIndicator();
+      } catch (error) {
+        removeTypingIndicator();
+        addMessage('Sorry, an error occurred while streaming.', 'bot');
+      }
+    }
+
+    // ---------- Feedback prototype (frontend-only) ----------
+    const EXTERNAL_ID = localStorage.getItem('external_id') || 'demo_user@example.com'; // localStorage persists across sessions [web:50]
+    const DEMO_DELAY_MINUTES = 0; // 0 = immediate for demo; set 1–2 to simulate delay [web:50]
+
+    function ensureStore(k, v){ if(!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(v)); } // Web Storage API usage [web:50]
+    function getStore(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch{ return []; } } // Storage getItem pattern [web:68]
+    function setStore(k, v){ localStorage.setItem(k, JSON.stringify(v)); } // Storage set via localStorage [web:49]
+
+    function fmtLeft(ms){
+      const s=Math.max(0,Math.floor(ms/1000)), d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60);
+      if(d>0) return `${d}d ${h}h`;
+      if(h>0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+
+    function initFeedbackUI(){
+      // Toggle select on remedy cards
+      document.querySelectorAll('.remedy-card').forEach(el=>{
+        el.addEventListener('click', e=>{
+          if(e.target.closest('details')) return;
+          el.classList.toggle('selected');
+        });
+      });
+
+      // Ensure storage
+      ensureStore('fb_schedules', []);
+      ensureStore('fb_feedback', []);
+
+      // Wire floating remind button
+      document.getElementById('remindBtn')?.addEventListener('click', ()=>{
+        const keys = Array.from(document.querySelectorAll('[data-remedy-key].selected')).map(el=>el.getAttribute('data-remedy-key')); // uses data-* attributes [web:64]
+        if(!keys.length) return showMessage('Select at least one remedy card', 'info');
+        scheduleReminders(keys);
+        showMessage('Reminder set. It will pop automatically (demo uses short delay).', 'success');
+      });
+
+      // Seed demo and refresh UI
+      seedDemoOnce();
+      updateAllBadges();
+      applyCountdowns();
+      showDueModal();
+      // Keep countdown fresh
+      setInterval(applyCountdowns, 30000);
+    }
+
+    function scheduleReminders(keys){
+      const arr = getStore('fb_schedules');
+      // For real "2 days", use: const dueAt = Date.now() + 2*24*60*60*1000;
+      const delay = DEMO_DELAY_MINUTES>0 ? DEMO_DELAY_MINUTES*60*1000 : 0;
+      const dueAt = Date.now() + delay;
+      keys.forEach(k => arr.push({ id: `${k}:${Date.now()}`, key: k, dueAt, status:'pending', who: EXTERNAL_ID }));
+      setStore('fb_schedules', arr);
+      applyCountdowns();
+    }
+
+    function applyCountdowns(){
+      const pending = getStore('fb_schedules').filter(x=>x.status==='pending');
+      const byKey = Object.fromEntries(pending.map(x=>[x.key, x]));
+      document.querySelectorAll('[data-remedy-key]').forEach(el=>{
+        const k = el.getAttribute('data-remedy-key');
+        const chip = el.querySelector('.countdown-chip');
+        if(!chip) return;
+        if(byKey[k]){
+          const left = byKey[k].dueAt - Date.now();
+          chip.textContent = left>0 ? `Feedback in ${fmtLeft(left)}` : 'Give feedback';
+          chip.style.background = left>0 ? '#fff3cd' : '#d1e7dd';
+          chip.style.color = left>0 ? '#664d03' : '#0f5132';
+        } else {
+          chip.textContent = '';
+          chip.removeAttribute('style');
+        }
+      });
+    }
+
+    function dueNow(){ return getStore('fb_schedules').filter(x=>x.status==='pending' && x.dueAt<=Date.now()); }
+
+    function updateSchedule(id, patch){
+      const arr = getStore('fb_schedules'); const i = arr.findIndex(x=>x.id===id);
+      if(i>-1){ arr[i] = {...arr[i], ...patch}; setStore('fb_schedules', arr); }
+    }
+
+    function pushFeedback(key, kind, note){
+      const list = getStore('fb_feedback');
+      list.push({ key, kind, note: note||null, t: Date.now() });
+      setStore('fb_feedback', list);
+    }
+
+    function showDueModal(){
+      const items = dueNow();
+      if(!items.length) return;
+      let idx = 0, choice = 'worked';
+      const modal = document.getElementById('fbModal');
+      const q = document.getElementById('fbQuestion');
+      const note = document.getElementById('fbNote');
+      modal.querySelectorAll('.choice').forEach(b=>{
+        b.onclick = ()=>{ choice = b.dataset.choice; modal.querySelectorAll('.choice').forEach(x=>x.style.outline=''); b.style.outline='2px solid #0d6efd'; };
+      });
+      document.getElementById('fbSend').onclick = ()=>{
+        const it = items[idx];
+        pushFeedback(it.key, choice, note.value);
+        updateSchedule(it.id, {status:'answered'});
+        idx++; if(idx<items.length){ note.value=''; choice='worked'; render(); } else { modal.style.display='none'; updateAllBadges(); }
+      };
+      document.getElementById('fbSkip').onclick = ()=>{
+        const it = items[idx];
+        updateSchedule(it.id, {status:'dismissed'});
+        idx++; if(idx<items.length){ note.value=''; choice='worked'; render(); } else { modal.style.display='none'; }
+      };
+      function render(){ q.textContent = `How did "${items[idx].key}" go?`; modal.style.display='block'; }
+      render();
+    }
+
+    function seedDemoOnce(){
+      const flag='fb_seed_v1';
+      if(localStorage.getItem(flag)) return;
+      const cards = Array.from(document.querySelectorAll('[data-remedy-key]')).slice(0,3);
+      const list=[];
+      const now = Date.now();
+      cards.forEach((el,i)=>{
+        const key = el.getAttribute('data-remedy-key');
+        const yes = 4+i, noEff = 1+(i%2), side = i%3;
+        for(let a=0;a<yes;a++) list.push({key, kind:'worked', note:null, t: now-a*1000});
+        for(let a=0;a<noEff;a++) list.push({key, kind:'noeffect', note:'No change for me', t: now-a*2000});
+        for(let a=0;a<side;a++) list.push({key, kind:'sidefx', note:'Mild headache', t: now-a*3000});
+      });
+      setStore('fb_feedback', list);
+      localStorage.setItem(flag,'1');
+    }
+
+    function tally(){
+      const fb = getStore('fb_feedback'); const m={};
+      fb.forEach(r=>{ m[r.key] ||= {worked:0,noeffect:0,sidefx:0,notes:[]}; m[r.key][r.kind]++; if(r.note) m[r.key].notes.push(r.note); });
+      return m;
+    }
+
+    function updateAllBadges(){
+      const m = tally();
+      document.querySelectorAll('[data-remedy-key]').forEach(el=>{
+        const key = el.getAttribute('data-remedy-key'); // HTMLElement.dataset usage model [web:64]
+        const x = m[key] || {worked:0,noeffect:0,sidefx:0,notes:[]};
+        const total = x.worked + x.noeffect + x.sidefx;
+        const wb = el.querySelector('.worked-badge'); const nb = el.querySelector('.noeffect-badge'); const sb = el.querySelector('.sidefx-badge');
+        if(wb) wb.textContent = `Worked: ${x.worked}${total ? '/' + total : ''}`;
+        if(nb) nb.textContent = `No effect: ${x.noeffect}${total ? '/' + total : ''}`;
+        if(sb) sb.textContent = `Side effects: ${x.sidefx}${total ? '/' + total : ''}`;
+        const ul = el.querySelector('.feedback-list');
+        if(ul){
+          ul.innerHTML = '';
+          (x.notes.slice(0,3).length ? x.notes.slice(0,3) : ['No comments yet']).forEach(n=>{
+            const li=document.createElement('li'); li.textContent=n; ul.appendChild(li);
+          });
+        }
+      });
+    }
+
+    async function demoNotify(){
+      try{
+        if(!('Notification' in window)) return; // Notifications API feature detect [web:60]
+        const perm = await Notification.requestPermission(); // Request permission [web:54]
+        if(perm!=='granted') return;
+        setTimeout(()=> new Notification('Time to give feedback', { body:'Tell if your remedy worked.' }), 60000); // Basic notification [web:60]
+      }catch{}
+    }
+  </script>
+</body>
+</html>
