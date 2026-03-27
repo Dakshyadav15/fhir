@@ -38,9 +38,11 @@ except Exception:
 
 try:
     from sentence_transformers import SentenceTransformer
-    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    sentence_model = None # Loaded lazily
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
 except Exception:
     sentence_model = None
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 try:
     from rapidfuzz import process, fuzz
@@ -51,12 +53,9 @@ except Exception:
 # ---- NLP pipelines (SciSpaCy preferred) ----
 try:
     import spacy
-    try:
-        nlp = spacy.load("en_ner_bc5cdr_md")
-        USE_SCISPACY = True
-    except Exception:
-        nlp = spacy.load("en_core_web_sm")
+    nlp = None # Loaded lazily
     NLP_AVAILABLE = True
+    USE_SCISPACY = False
 except Exception:
     nlp = None
     NLP_AVAILABLE = False
@@ -289,6 +288,14 @@ def extract_medical_entities(text: str) -> Dict[str, Union[List[str], bool, str]
     text_l = (text or "").strip()
     if not NLP_AVAILABLE or not text_l: return {"symptoms": [text_l] if text_l else [], "body_parts": [], "conditions": [], "enhanced": False}
     try:
+        global nlp
+        if nlp is None:
+            import spacy
+            try:
+                nlp = spacy.load("en_ner_bc5cdr_md")
+            except Exception:
+                nlp = spacy.load("en_core_web_sm")
+                
         doc = nlp(text_l)
         entities = {"symptoms": [], "body_parts": [], "conditions": [], "enhanced": True}
         for ent in getattr(doc, "ents", []):
@@ -377,7 +384,12 @@ def enhance_query_with_ollama(user_input: str, model_name: str = OLLAMA_MODEL) -
 
 @retry_with_backoff(retries=3, initial_delay=0.5, backoff_factor=2)
 def semantic_search(query: str, base: pd.DataFrame, top_k: int = 5) -> List[Tuple[int, float]]:
-    if sentence_model is None or np is None or base.empty: return []
+    global sentence_model
+    if not SENTENCE_TRANSFORMERS_AVAILABLE or np is None or base.empty: return []
+    if sentence_model is None:
+        from sentence_transformers import SentenceTransformer
+        sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+        
     q_emb = sentence_model.encode([query])
     texts = base["__norm"].tolist()
     t_embs = sentence_model.encode(texts)
