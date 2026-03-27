@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  ayush-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - FHIR_ENCRYPTION_KEY=${FHIR_ENCRYPTION_KEY}
+    volumes:
+      - .:/app
+    # If the user has local datasets, they'll be mounted here.
+    # Otherwise, the app uses mock data.

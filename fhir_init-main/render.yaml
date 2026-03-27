@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ayush-lookup-api
+    env: docker
+    region: ohio
+    plan: free # Change to starter or standard for production
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /status
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: OPENAI_API_KEY
+        sync: false # You must set this securely in the Render dashboard
+      - key: FHIR_ENCRYPTION_KEY
+        generateValue: true # Render will automatically generate a secure 256-bit key
